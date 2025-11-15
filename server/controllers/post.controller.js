@@ -1,10 +1,20 @@
 import User from '../models/user.model.js';
 import Post from '../models/post.model.js';
+import ImageKit from 'imagekit';
+import dotenv from "dotenv";
 
+
+
+dotenv.config();
 
 export const getPosts = async (req, res) => {
-    const posts = await Post.find();
-    res.status(200).json(posts);
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 5 
+    const posts = await Post.find().populate("user","username").limit(limit).skip((page - 1) * limit);
+
+    const totalPosts = await Post.countDocuments();
+    const hasMore = page * limit < totalPosts;
+    res.status(200).json({posts, hasMore});
 }
 
 export const getPost = async (req, res) => {
@@ -14,7 +24,7 @@ export const getPost = async (req, res) => {
 
 export const createPost = async (req, res) => {
 
-    const clerkUserId = req.auth.userId;
+    const {userId: clerkUserId} = req.auth();
     if(!clerkUserId){
         return res.status(401).json("Unauthorized");
     }
@@ -25,19 +35,18 @@ export const createPost = async (req, res) => {
         return res.status(404).json("User not found");
     }
 
-    let slug = req.body.title.replace(/ /g, "-").toLowerCase()
+    let slug = req.body.title.replace(/ /g, "-").toLowerCase();
 
-    let existingPost = await Post.findOne({ slug })
-
+    let existingPost = await Post.findOne({ slug });
     let counter = 2;
 
     while(existingPost){
-        slug = `${slug}-${counter}`
+        slug = `${slug}-${counter}`;
         existingPost = await Post.findOne ({ slug });
         counter++;
     }
-
-    const newPost = new Post({user:user._id, slug, ...req.body});
+    
+    const newPost = new Post({user:user._id, slug, img: req.body.img || "", ...req.body});
 
     const post = await newPost.save();
     res.status(200).json(post);
@@ -45,7 +54,7 @@ export const createPost = async (req, res) => {
 
 export const deletePost = async (req, res) => {
 
-     const clerkUserId = req.auth.userId;
+    const {userId: clerkUserId} = req.auth();
     if(!clerkUserId){
         return res.status(401).json("Unauthorized");
     }
@@ -60,4 +69,15 @@ export const deletePost = async (req, res) => {
     }
 
     res.status(200).json("Post deleted successfully");
+}
+
+const imagekit = new ImageKit({
+    urlEndpoint: process.env.IK_URL_ENDPOINT,
+    publicKey: process.env.IK_PUBLIC_KEY,
+    privateKey: process.env.IK_PRIVATE_KEY,
+});
+
+export const uploadAuth = async (req, res) => {
+    const result = imagekit.getAuthenticationParameters();
+    res.send(result);
 }

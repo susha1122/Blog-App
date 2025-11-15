@@ -2,11 +2,14 @@ import React from 'react'
 import { IKImage } from 'imagekitio-react';
 
 
-const Image = ({src, className, w, h, alt}) => {
+const Image = ({src, className, w, h, alt, isFullUrl}) => {
   return (
     <IKImage 
     urlEndpoint={import.meta.env.VITE_IK_URL_ENDPOINT} 
-    path={src} 
+    {...(isFullUrl 
+        ? { src }        // for full URLs
+        : { path: src }  // for paths
+    )}
     alt={alt} 
     className={className}
     loading="lazy"
