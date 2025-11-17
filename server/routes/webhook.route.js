@@ -4,6 +4,12 @@ import bodyParser from 'body-parser';
 
 const router = express.Router();
 
-router.post('/clerk', bodyParser.raw({ type: 'application/json'}), clerkWebHook)
+// FIX → Allow all content types so Clerk payload is captured
+router.post(
+  "/clerk",
+  bodyParser.raw({ type: "*/*" }),   // FIXED
+  clerkWebHook
+);
+
 
 export default router;

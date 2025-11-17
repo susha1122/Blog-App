@@ -8,7 +8,7 @@ import {useAuth, useUser} from '@clerk/clerk-react';
 
 const fetchComments = async (postId) =>{
     const res = await axios.get(`${import.meta.env.VITE_API_URL}/comments/${postId}`);
-    return (await res).data;
+    return res.data;
 }
 
 
@@ -77,7 +77,7 @@ const Comments = ({postId}) => {
           )
         }
         {data.map((comment) => (
-          <Comment key={comment._id} comment={comment} />
+          <Comment key={comment._id} comment={comment} postId={postId} />
         ))}
         </>
         

@@ -23,6 +23,8 @@ const PostMenuActions = ({post}) => {
         },
     });
 
+    const isAdmin = user?.publicMetadata?.role === "admin" || false;
+
     const isSaved = savedPosts?.data?.some(p => p === post._id) || false;
 
     const deleteMutation = useMutation({
@@ -64,10 +66,33 @@ const PostMenuActions = ({post}) => {
         },
     })
 
+    const featureMutation = useMutation({
+        mutationFn: async () => {
+            const token = await getToken();
+            return axios.patch(`${import.meta.env.VITE_API_URL}/posts/feature`,{
+                postId: post._id,
+            },{
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+        },
+        onSuccess:()=>{
+            queryClient.invalidateQueries({queryKey: ["post", post.slug]})
+        },
+        onError: (error) => {
+            toast.error(error.response.data);
+        },
+    })
+
 
 
     const handleDelete = () => {
         deleteMutation.mutate();
+    }
+
+    const handleFeature = () => {
+        featureMutation.mutate();
     }
 
     const handleSave = () => {
@@ -77,10 +102,12 @@ const PostMenuActions = ({post}) => {
         saveMutation.mutate();
     }
 
+    
+
     return (
         <div>
             <h1 className='mt-8 mb-4 text-sm font-medium'>Action</h1>
-            {isPending ? "Loading..." : error ? "Saved post fetching failed!" : <div className='flex items-center gap-2 py-2 text-sm cursor-pointer' onClick={handleSave}>
+            {isPending ? "Loading..." : error ? "Saved post fetching failed!" : (<div className='flex items-center gap-2 py-2 text-sm cursor-pointer' onClick={handleSave}>
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 48 48"
@@ -97,9 +124,29 @@ const PostMenuActions = ({post}) => {
                     />
                 </svg>
                 <span>Save this Post</span>
-                {saveMutation.isPending && <span className="text-xs">(in progress)</span>}
-            </div>}
-            {user && (post.user.username === user.username) && <div className='flex items-center gap-2 py-2 text-sm cursor-pointer' onClick={handleDelete}>
+                {saveMutation.isPending && (<span className="text-xs">(in progress)</span>)}
+            </div>
+        )}
+            {isAdmin && (
+                <div className="flex items-center gap-2 py-2 text-sm cursor-pointer" onClick={handleFeature}>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 48 48"
+                        width="20px"
+                        height="20px"
+                    >
+                        <path
+                            d="M24 2L29.39 16.26L44 18.18L33 29.24L35.82 44L24 37L12.18 44L15 29.24L4 18.18L18.61 16.26L24 2Z"
+                            stroke="black"
+                            strokeWidth="2"
+                            fill= {featureMutation.isPending ? post.isFeatured ? "none" : "black" : post.isFeatured ? "black" : "none"}
+                        />
+                    </svg>
+                    <span>Feature</span>
+                    {featureMutation.isPending && (<span className="text-xs">(in progress)</span>)}
+                </div>
+            )}
+            {user && (post.user.username === user.username || isAdmin) && (<div className='flex items-center gap-2 py-2 text-sm cursor-pointer' onClick={handleDelete}>
                 <svg
                     xmlns='http://www.w3.org/2000/svg'
                     viewBox='0 0 50 50'
@@ -113,7 +160,7 @@ const PostMenuActions = ({post}) => {
                 </svg>
                 <span>Delete this Post</span>
                 {deleteMutation.isPending && <span className="text-xs">(in progress)</span>}
-            </div>}
+            </div>)}
         </div>
     )
 }
