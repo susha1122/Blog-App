@@ -1,29 +1,40 @@
-import React from 'react'
-import { IKImage } from 'imagekitio-react';
+import { IKImage } from "imagekitio-react";
 
+const Image = ({ src, className, w, h, alt }) => {
+  const urlEndpoint = import.meta.env.VITE_IK_URL_ENDPOINT;
 
-const Image = ({src, className, w, h, alt, isFullUrl}) => {
+  // Auto-detect if src is a full URL
+  const isFullUrl = /^https?:\/\//.test(src);
+
+  const transformations = w || h ? [{ width: w, height: h }] : [];
+
+  // FULL URL → no transformations allowed
+  if (isFullUrl) {
+    return (
+      <IKImage
+        urlEndpoint={urlEndpoint}
+        src={src}               // full URL
+        transformation={[]}     // no transforms (required!)
+        loading="lazy"
+        lqip={{ active: true, quality: 20 }}
+        alt={alt}
+        className={className}
+      />
+    );
+  }
+
+  // IMAGEKIT PATH → allow transformations
   return (
-    <IKImage 
-    urlEndpoint={import.meta.env.VITE_IK_URL_ENDPOINT} 
-    {...(isFullUrl 
-        ? { src }        // for full URLs
-        : { path: src }  // for paths
-    )}
-    alt={alt} 
-    className={className}
-    loading="lazy"
-    lqip = {{ active: true, quality: 20 }} 
-    width={w}
-    height={h}
-    transformation={[
-      {
-        width: w,
-        height: h,
-      }
-    ]}
+    <IKImage
+      urlEndpoint={urlEndpoint}
+      path={src}               // ImageKit path only
+      transformation={transformations}
+      loading="lazy"
+      lqip={{ active: true, quality: 20 }}
+      alt={alt}
+      className={className}
     />
-  )
-}
+  );
+};
 
-export default Image
+export default Image;
